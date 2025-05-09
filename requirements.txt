@@ -136,6 +136,8 @@ tornado==6.4.2
     # via
     #   ipykernel
     #   jupyter-client
+tqdm==4.67.1
+    # via -r requirements.in
 traitlets==5.14.3
     # via
     #   comm
