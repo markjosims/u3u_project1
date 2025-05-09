@@ -3,7 +3,7 @@ import sys
 import numpy as np
 from imblearn.over_sampling import ADASYN
 
-def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
+def preprocess_df(df: pd.DataFrame, test: bool = False) -> pd.DataFrame:
     all_pos = set()
     pos_cols = [col for col in df.columns if col.endswith('pos')]
     for col in pos_cols:
@@ -37,21 +37,28 @@ def preprocess_df(df: pd.DataFrame) -> pd.DataFrame:
     df['next_word_same']=(df['word']==df['next_word']).astype(int)
     word_equal_cols = ['prev_word_same', 'next_word_same']
 
+    freq_cols = [col for col in df.columns if 'freq' in col]
+    feature_cols = wordlen_cols + word_equal_cols + pos_onehot_cols + freq_cols
+    if test:
+        return df[feature_cols+['edit_type']]
+    print("Resampling")
+    print(df.shape)
     y = df.edit_type
     majority_n = sum(y == 0)
-    feature_cols = wordlen_cols + word_equal_cols + pos_onehot_cols
     X_ada = df[feature_cols]
     y_ada = df["edit_type"]
 
     adasyn = ADASYN(sampling_strategy={1: int(majority_n * 0.3), 3: int(majority_n * 0.3)},random_state=42)
     X_re, y_re = adasyn.fit_resample(X_ada, y_ada)
-
     df_ada = pd.DataFrame(X_re, columns=feature_cols)
     df_ada["edit_type"] = y_re
+    print("After resampling with ADASYN")
+    print(df_ada.shape)
+
     return df_ada
 
 if __name__ == '__main__':
     csv_path = sys.argv[1]
     df = pd.read_csv(csv_path)
-    df_preproc = preprocess_df(df)
+    df_preproc = preprocess_df(df, test='test' in csv_path)
     df_preproc.to_csv(csv_path.replace('.csv', '-preprocessed.csv'), index=False)
